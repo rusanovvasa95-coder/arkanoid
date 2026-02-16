@@ -13,15 +13,20 @@ public class Ball : MonoBehaviour, IPointerDownHandler
     private bool _launchAgain;
     private Platform _platform;
     private Vector3 _savedDirection;
+    private Vector3 _platformStartPosition;
+    private Collider2D _collider;
 
     private void Awake()
     {
         _ballOnPlatform = true;
         _launchAgain = true;
         _startBallPosition = transform.position;
+       
 
         _rigidbody = GetComponent<Rigidbody2D>();
         _platform = FindFirstObjectByType<Platform>();
+        _platformStartPosition = _platform.transform.position;
+        _collider = GetComponent<Collider2D>();
     }
 
     private void OnCollisionEnter2D(Collision2D collision)
@@ -72,7 +77,8 @@ public class Ball : MonoBehaviour, IPointerDownHandler
     {
         if (_ballOnPlatform)
         {
-            _rigidbody.linearVelocity = (Vector3.up + new Vector3(Random.Range(-1, 2), 0)) * JumpForce;
+            //_rigidbody.linearVelocity = (Vector3.up + new Vector3(Random.Range(-1, 2), 0)) * JumpForce;
+            _rigidbody.linearVelocity = Vector3.left * JumpForce;
             _savedDirection = _rigidbody.linearVelocity;
             _ballOnPlatform = false;
         }
@@ -89,12 +95,36 @@ public class Ball : MonoBehaviour, IPointerDownHandler
         }
 
         float minXVelocity = 1f;
-        Vector4 ballVelocityX = _rigidbody.linearVelocity;
+        Vector3 ballVelocityX = _rigidbody.linearVelocity;
         if (Mathf.Abs(ballVelocityX.x) < minXVelocity)
         {
             ballVelocityX.x = ballVelocityX.x > 0 ? minXVelocity : -minXVelocity;
             _rigidbody.linearVelocity = ballVelocityX.normalized * JumpForce;
         }
     }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (collision.GetComponent <DownBorder>())
+        {
+            ReturnToPlatform();
+        }
+    }
+
+    private void ReturnToPlatform()
+    {
+        _platform.transform.position = _platformStartPosition;
+        _collider.isTrigger = true;
+        _rigidbody.linearVelocity = Vector3.zero;
+        transform.position = _startBallPosition;
+        StartCoroutine(Delay());
+        IEnumerator Delay()
+        {
+            yield return new WaitForSeconds(0.5f);
+            _collider.isTrigger = false;
+            _ballOnPlatform = true;
+        }
+    }
+
 }
 
